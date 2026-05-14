@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>IndiaNotify Shodhganga PDF Merger</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #ffffff;
+            --bg-sec: #f7f6f3;
+            --bg-ter: #f0efe9;
+            --border: rgba(0, 0, 0, 0.10);
+            --border-md: rgba(0, 0, 0, 0.18);
+            --text: #1a1a1a;
+            --text-sec: #666;
+            --text-ter: #999;
+            --green: #2d7a3a;
+            --green-bg: #eaf3de;
+            --red: #a32d2d;
+            --red-bg: #fcebeb;
+            --red-bdr: rgba(163, 45, 45, 0.20);
+            --amber: #854f0b;
+            --amber-bg: #faeeda;
+            --blue: #185fa5;
+            --radius: 8px;
+            --radius-lg: 12px;
+            --mono: 'Courier New', monospace;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #141414;
+                --bg-sec: #1c1c1c;
+                --bg-ter: #222;
+                --border: rgba(255, 255, 255, 0.08);
+                --border-md: rgba(255, 255, 255, 0.14);
+                --text: #e8e8e8;
+                --text-sec: #999;
+                --text-ter: #555;
+                --green: #7ed87e;
+                --green-bg: #0d2e10;
+                --red: #e05050;
+                --red-bg: #1f0a0a;
+                --red-bdr: rgba(224, 80, 80, 0.20);
+                --amber: #f0a030;
+                --amber-bg: #1f1200;
+                --blue: #5090e0;
+            }
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--mono);
+            padding: 28px 24px;
+            min-height: 100vh;
+            font-size: 20px;
+        }
+
+        .header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+        }
+
+        .header-sub {
+            font-size: 14px;
+            color: var(--text-sec);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        #url {
+            flex: 1;
+            padding: 8px 8px;
+            background: var(--bg-sec);
+            border: 0.5px solid var(--border-md);
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 14px;
+            border-radius: var(--radius);
+            outline: none;
+        }
+
+        #btn {
+            padding: 8px 16px;
+            background: var(--bg-sec);
+            border: 0.5px solid var(--border-md);
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 16px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        #btn:disabled {
+            opacity: .7;
+            cursor: not-allowed;
+        }
+
+        #stats {
+            display: none;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        #stats.visible {
+            display: flex;
+        }
+
+        .stat {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+
+            padding: 10px 12px;
+            background: var(--bg-sec);
+            border: 0.5px solid var(--border);
+            border-radius: var(--radius);
+        }
+
+        .stat-label {
+            font-size: 16px;
+        }
+
+        .stat-val {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .green {
+            color: var(--green);
+        }
+
+        .red {
+            color: var(--red);
+        }
+
+        .section-label {
+            font-size: 14px;
+            color: var(--text-ter);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+        }
+
+        .file-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: var(--bg-sec);
+            border: 0.5px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 5px;
+        }
+
+        .file-name {
+            flex: 1;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-status {
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .file-status.done {
+            color: var(--green);
+        }
+
+        .file-status.fail {
+            color: var(--red);
+        }
+
+        .file-status.retry {
+            color: var(--amber);
+        }
+
+        .file-status.running {
+            color: var(--blue);
+        }
+
+        .bar-wrap {
+            width: 60px;
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--blue);
+            transition: width .3s ease;
+        }
+
+        .bar-fill.done {
+            background: var(--green);
+        }
+
+        .bar-fill.fail {
+            background: var(--red);
+        }
+
+        .bar-fill.retry {
+            background: var(--amber);
+        }
+
+        #failure-section {
+            display: none;
+            margin-top: 12px;
+            border: 0.5px solid var(--red-bdr);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .failure-head {
+            padding: 10px 12px;
+            background: var(--red-bg);
+            color: var(--red);
+            font-size: 14px;
+            border-bottom: 0.5px solid var(--red-bdr);
+        }
+
+        .failure-item {
+            padding: 8px 12px;
+            border-bottom: 0.5px solid var(--border);
+        }
+
+        .failure-url {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+
+            font-size: 14px;
+            color: var(--blue);
+            cursor: pointer;
+            word-break: break-all;
+        }
+
+        .failure-url-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .failure-err {
+            font-size: 12px;
+            color: var(--red);
+            margin-top: 2px;
+        }       
+
+        .open-external-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: transparent;
+            border: none;
+            cursor: pointer;
+
+            padding: 4px;
+            border-radius: 6px;
+
+            color: var(--text-muted, #888);
+            transition: 0.2s ease;
+        }
+
+        .open-external-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text, #fff);
+            transform: translateY(-1px);
+        }
+
+        .open-external-btn svg {
+            pointer-events: none;
+        }
+
+        /* =========================
+           LOADER
+        ========================= */
+
+        #loader {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        #loader.show {
+            display: flex;
+        }
+
+        .loader-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .spinner {
+            width: 42px;
+            height: 42px;
+            border: 3px solid var(--border-md);
+            border-top: 3px solid var(--blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .loader-text {
+            font-size: 14px;
+            color: var(--text-sec);
+            letter-spacing: .06em;
+        }
+
+        @keyframes spin {
+
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .center-error {
+            width: 100%;
+            min-height: 300px;
+
+            display: flex;
+            flex-direction: column;
+
+            align-items: center;
+            justify-content: center;
+
+            text-align: center;
+
+            gap: 10px;
+
+            padding: 30px;
+
+            border: 0.5px solid var(--red-bdr);
+            border-radius: var(--radius-lg);
+
+            background: var(--red-bg);
+
+            color: var(--text);
+        }
+
+        .center-error-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--red);
+        }
+
+        .center-error-sub {
+            font-size: 16px;
+            color: var(--text-sec);
+        }
+
+        .center-error-detail {
+            font-size: 13px;
+            color: var(--text-ter);
+
+            max-width: 700px;
+            word-break: break-word;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <span class="header-title">PDF Merger + Citation Maker</span>
+        <span class="header-sub">Make File Handling Easy</span>
+    </div>
+
+    <div class="input-row">
+
+        <input id="url" placeholder="Paste URL… Or URI… from Shodhganga">
+
+        <button id="btn">
+            <i class="ti ti-download"></i>
+            Fetch
+        </button>
+
+    </div>
+
+    <div id="stats">
+
+        <div class="stat">
+            <div class="stat-label">Total : </div>
+            <div class="stat-val" id="stat-total">0</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-label">Done : </div>
+            <div class="stat-val green" id="stat-done">0</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-label">Failed : </div>
+            <div class="stat-val red" id="stat-failed">0</div>
+        </div>
+
+    </div>
+
+    <div id="files-wrap" style="display:none;">
+
+        <div class="section-label">Files</div>
+
+        <div id="files"></div>
+
+    </div>
+
+    <div id="failure-section">
+
+        <div class="failure-head">
+            Failed downloads
+        </div>
+
+        <div id="failure-list"></div>
+
+    </div>
+
+    <div id="loader">
+
+        <div class="loader-box">
+
+            <div class="spinner"></div>
+
+            <div class="loader-text">
+                Preparing download...
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        const { ipcRenderer, shell } = require("electron");
+
+        const filesBox = document.getElementById("files");
+
+        const filesWrap = document.getElementById("files-wrap");
+
+        const btn = document.getElementById("btn");
+
+        const statsBox = document.getElementById("stats");
+
+        const failSection = document.getElementById("failure-section");
+
+        const failList = document.getElementById("failure-list");
+
+        const statTotal = document.getElementById("stat-total");
+
+        const statDone = document.getElementById("stat-done");
+
+        const statFailed = document.getElementById("stat-failed");
+
+        const loader = document.getElementById("loader");
+
+        let fileMap = {};
+
+        let fileListReady = false;
+
+        let buffer = [];
+
+        let downloading = false;
+
+        let stopped = false;
+
+        let counts = {
+            total: 0,
+            done: 0,
+            failed: 0
+        };
+
+        function norm(x) {
+
+            return (x || "")
+                .toString()
+                .trim()
+                .toLowerCase();
+        }
+
+        function updateStats() {
+
+            statTotal.textContent = counts.total;
+
+            statDone.textContent = counts.done;
+
+            statFailed.textContent = counts.failed;
+        }
+
+        function makeRow(name) {
+
+            const div = document.createElement("div");
+
+            div.className = "file-row";
+
+            div.innerHTML =
+                `
+                <i class="ti ti-file-type-pdf"></i>
+
+                <span class="file-name">
+                    ${name}
+                </span>
+
+                <span class="file-status">
+                    Waiting
+                </span>
+
+                <div class="bar-wrap">
+                    <div class="bar-fill"></div>
+                </div>
+                `;
+
+            filesBox.appendChild(div);
+
+            return {
+
+                status: div.querySelector(".file-status"),
+
+                fill: div.querySelector(".bar-fill")
+            };
+        }
+
+        function updateRow(ui, pct, text) {
+
+            ui.fill.style.width = pct + "%";
+
+            ui.status.textContent = text;
+
+            ui.status.className = "file-status";
+
+            ui.fill.className = "bar-fill";
+
+            if (text.includes("✓")) {
+
+                ui.status.classList.add("done");
+
+                ui.fill.classList.add("done");
+
+                counts.done++;
+
+                updateStats();
+
+            } else if (text.includes("✗")) {
+
+                ui.status.classList.add("fail");
+
+                ui.fill.classList.add("fail");
+
+            } else if (text.includes("Retry")) {
+
+                ui.status.classList.add("retry");
+
+                ui.fill.classList.add("retry");
+
+            } else {
+
+                ui.status.classList.add("running");
+            }
+        }
+
+        function childToMotherUrl(url) {
+            return url.replace("/bitstream", "/handle")
+                .split("/")
+                .slice(0, 6)
+                .join("/");
+        }
+
+        function addFailure(filename, url, error) {
+
+            counts.failed++;
+
+            updateStats();
+
+            failSection.style.display = "block";
+
+            const item = document.createElement("div");
+
+            item.className = "failure-item";
+
+            item.innerHTML =
+                `
+                    <div class="failure-name">
+                        ${filename}
+                    </div>
+
+                    <div class="failure-url">
+                        <span class="failure-url-text">${url}</span>
+
+                        <button class="open-external-btn" title="Open in browser">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path fill="currentColor"
+                                    d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z"/>
+                                <path fill="currentColor"
+                                    d="M5 5h6V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-6h-2v6H5V5z"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="failure-err">
+                        ${error || ""}
+                    </div>
+                `;
+
+            let main_url = childToMotherUrl(url)
+
+            item.querySelector(".open-external-btn")
+                .addEventListener("click", () => {
+                    shell.openExternal(main_url);
+                });
+
+            item.querySelector(".failure-url")
+                .addEventListener("click", () => {
+                    shell.openExternal(main_url);
+                });
+
+            failList.appendChild(item);
+        }
+
+        function resetUI() {
+
+            fileMap = {};
+
+            fileListReady = false;
+
+            buffer = [];
+
+            counts = {
+                total: 0,
+                done: 0,
+                failed: 0
+            };
+
+            filesBox.innerHTML = "";
+
+            failList.innerHTML = "";
+
+            filesWrap.style.display = "none";
+
+            failSection.style.display = "none";
+
+            statsBox.classList.remove("visible");
+
+            updateStats();
+        }
+
+        function handle(data) {
+
+            if (data.type === "no-internet") {
+
+                loader.classList.remove("show");
+
+                downloading = false;
+
+                btn.disabled = false;
+
+                btn.innerHTML =
+                    `
+                        <i class="ti ti-download"></i>
+                        Fetch
+                    `;
+
+                filesWrap.style.display = "block";
+
+                filesBox.innerHTML =
+                    `
+                        <div class="center-error">
+
+                            <div class="center-error-title">
+                                No Internet Connection
+                            </div>
+
+                            <div class="center-error-sub">
+                                Kindly connect with WiFi/LAN
+                            </div>
+
+                            <div class="center-error-detail">
+                                ${data.error}
+                            </div>
+
+                        </div>
+                    `;
+
+                return;
+            }
+
+
+            if (data.type === "no-response") {
+
+                loader.classList.remove("show");
+
+                downloading = false;
+
+                btn.disabled = false;
+
+                btn.innerHTML =
+                    `
+                        <i class="ti ti-download"></i>
+                        Fetch
+                     `;
+
+                filesWrap.style.display = "block";
+
+                filesBox.innerHTML =
+                    `
+                        <div class="center-error">
+
+                            <div class="center-error-title">
+                                Website is not responding
+                            </div>
+
+                            <div class="center-error-sub">
+                                Try again after sometime
+                            </div>
+
+                            <div class="center-error-detail">
+                                ${data.error}
+                            </div>
+
+                        </div>
+                    `;
+
+                return;
+            }
+
+            if (data.type === "all-files") {
+
+                loader.classList.remove("show");
+
+                fileMap = {};
+
+                fileListReady = true;
+
+                counts.total = data.files.length;
+
+                filesWrap.style.display = "block";
+
+                statsBox.classList.add("visible");
+
+                updateStats();
+
+                data.files.forEach(f => {
+
+                    fileMap[
+                        norm(f.filename)
+                    ] = makeRow(f.filename);
+                });
+
+                buffer.forEach(handle);
+
+                buffer = [];
+
+                return;
+            }
+
+            if (!fileListReady) {
+
+                buffer.push(data);
+
+                return;
+            }
+
+            if (data.type === "progress") {
+
+                const ui =
+                    fileMap[
+                    norm(data.filename)
+                    ];
+
+                if (ui) {
+
+                    updateRow(
+                        ui,
+                        data.percent,
+                        data.status
+                    );
+                }
+            }
+
+            if (data.type === "bib") {
+
+                const ui =
+                    fileMap[
+                    norm(data.filename)
+                    ];
+
+                if (ui) {
+
+                    updateRow(
+                        ui,
+                        100,
+                        "Generated ✓"
+                    );
+                }
+            }
+
+            if (data.type === "merged") {
+
+                const ui =
+                    fileMap[
+                    norm(data.filename)
+                    ];
+
+                if (ui) {
+
+                    updateRow(
+                        ui,
+                        100,
+                        "Merged ✓"
+                    );
+                }
+            }
+
+            if (data.type === "merged-failed") {
+
+                const ui =
+                    fileMap[
+                    norm(data.filename)
+                    ];
+
+                if (ui) {
+
+                    updateRow(
+                        ui,
+                        100,
+                        "Failed ✗"
+                    );
+                }
+            }
+
+            if (data.type === "failed") {
+
+                addFailure(
+                    data.filename,
+                    data.url,
+                    data.error
+                );
+            }
+
+            if (data.type === "stopped") {
+
+                loader.classList.remove("show");
+
+                downloading = false;
+
+                btn.innerHTML =
+                    `
+                        <i class="ti ti-download"></i>
+                        Stopped
+                    `;
+
+                setTimeout(() => {
+
+                    btn.innerHTML =
+                        `
+                            <i class="ti ti-download"></i>
+                            Fetch
+                        `;
+
+                    btn.disabled = false;
+
+                }, 1000);
+            }
+
+            if (data.type === "done") {
+
+                loader.classList.remove("show");
+
+                downloading = false;
+
+                btn.disabled = false;
+
+                btn.innerHTML =
+                    `
+                        <i class="ti ti-download"></i>
+                        Fetch
+                    `;
+            }
+        }
+
+        ipcRenderer.on(
+            "download-progress",
+            (_, data) => handle(data)
+        );
+
+        btn.onclick = async () => {
+
+            // STOP
+            if (downloading) {
+
+                stopped = true;
+
+                btn.disabled = true;
+
+                btn.innerHTML =
+                    `
+                        <i class="ti ti-player-stop"></i>
+                        Stopping...
+                    `;
+
+                await ipcRenderer.invoke(
+                    "stop-download"
+                );
+
+                return;
+            }
+
+            // START
+            const url =
+                document
+                    .getElementById("url")
+                    .value
+                    .trim();
+
+            if (!url) return;
+
+            loader.classList.add("show");
+
+            resetUI();
+
+            stopped = false;
+
+            downloading = true;
+
+            btn.innerHTML =
+                `
+                    <i class="ti ti-player-stop"></i>
+                    Stop
+                `;
+
+            await ipcRenderer.invoke("start-download", url);
+        };
+
+    </script>
+
+</body>
+
+</html>
